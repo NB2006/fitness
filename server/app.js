@@ -9,6 +9,14 @@ app.use(cors({ origin: process.env.CORS_ORIGIN || "*" }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+app.get("/", (req, res) => {
+  res.json({ status: "ok", service: "fitness-pay-backend" });
+});
+
+app.get("/health", (req, res) => {
+  res.json({ status: "ok" });
+});
+
 const requiredEnv = [
   "SEVENPAY_PID",
   "SEVENPAY_KEY",
@@ -29,7 +37,6 @@ const supabase = createClient(
 function randomSuffix() {
   return crypto.randomBytes(3).toString("hex").toUpperCase();
 }
-const PAY_BASE = process.env.SEVENPAY_API_BASE || "https://7pay.top";
 const PAY_PRICE = Number(process.env.PAY_PRICE || "9.9").toFixed(2);
 const PAY_SITENAME = process.env.PAY_SITENAME || "AI Fitness Plan";
 const PAY_PRODUCT_NAME = process.env.PAY_PRODUCT_NAME || "AI Fitness Plan Premium";
@@ -101,7 +108,8 @@ app.post("/api/pay/create", async (req, res) => {
       sign_type: "MD5"
     }).toString();
 
-    const payUrl = `${PAY_BASE}/submit.php?${query}`;
+    const payBase = process.env.SEVENPAY_API_BASE || "https://7pay.top";
+    const payUrl = `${payBase}/submit.php?${query}`;
 
     await insertOrder({
       order_no: orderNo,
