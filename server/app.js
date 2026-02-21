@@ -1,7 +1,6 @@
 const express = require("express");
 const cors = require("cors");
 const crypto = require("crypto");
-const { customAlphabet } = require("nanoid");
 const { createClient } = require("@supabase/supabase-js");
 require("dotenv").config();
 
@@ -27,7 +26,9 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const nanoid = customAlphabet("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", 6);
+function randomSuffix() {
+  return crypto.randomBytes(3).toString("hex").toUpperCase();
+}
 const PAY_BASE = process.env.SEVENPAY_API_BASE || "https://7pay.top";
 const PAY_PRICE = Number(process.env.PAY_PRICE || "9.9").toFixed(2);
 const PAY_SITENAME = process.env.PAY_SITENAME || "AI Fitness Plan";
@@ -76,7 +77,7 @@ app.post("/api/pay/create", async (req, res) => {
     }
 
     const payType = validPayType(req.body.payType) ? req.body.payType : "wxpay";
-    const orderNo = `FP${Date.now()}${nanoid()}`;
+    const orderNo = `FP${Date.now()}${randomSuffix()}`;
 
     const notifyUrl = `${process.env.BASE_URL || req.protocol + "://" + req.get("host")}/api/pay/notify`;
     const returnBase = FRONTEND_URL || req.headers.origin || "";
