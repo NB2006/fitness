@@ -1,0 +1,6 @@
+.env
+server/.env
+server/node_modules
+node_modules
+.vercel
+.DS_Store

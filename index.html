@@ -1,0 +1,981 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AI健身计划生成器</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-slate-100">
+  <div class="max-w-5xl mx-auto px-4 py-10">
+    <header class="mb-10">
+      <div class="inline-flex items-center gap-2 rounded-full bg-blue-500/10 px-4 py-2 text-blue-200 text-sm">
+        <span class="h-2 w-2 rounded-full bg-orange-400"></span>
+        AI Fitness Plan Builder
+      </div>
+      <h1 class="mt-4 text-3xl md:text-4xl font-bold tracking-tight text-white">生成你的专属健身计划</h1>
+      <p class="mt-2 text-slate-300">科学训练 + 营养建议，一站式获取。</p>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <!-- Form -->
+      <section class="bg-white/5 backdrop-blur rounded-2xl p-6 border border-white/10 shadow-xl">
+        <h2 class="text-xl font-semibold mb-4">基础信息</h2>
+        <div class="mb-4 rounded-xl bg-slate-900/60 border border-white/10 p-3">
+          <label class="text-sm text-slate-300">API Key（可临时输入，保存在本地浏览器）</label>
+          <div class="mt-2 flex gap-2">
+            <input id="apiKeyInput" type="password" class="flex-1 rounded-lg bg-slate-900/70 border border-white/10 px-3 py-2" placeholder="粘贴你的DashScope API Key" />
+            <button id="saveApiKeyBtn" type="button" class="rounded-lg bg-blue-500 hover:bg-blue-400 transition text-white font-semibold px-3">
+              保存
+            </button>
+          </div>
+          <p class="mt-2 text-xs text-slate-400">不会上传到服务器，仅存于本机浏览器 localStorage。</p>
+        </div>
+        <form id="planForm" class="space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-sm text-slate-300">性别</label>
+              <select id="gender" required class="mt-1 w-full rounded-lg bg-slate-900/70 border border-white/10 px-3 py-2">
+                <option value="男">男</option>
+                <option value="女">女</option>
+                <option value="其他">其他</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-sm text-slate-300">年龄</label>
+              <input id="age" type="number" min="12" max="80" required class="mt-1 w-full rounded-lg bg-slate-900/70 border border-white/10 px-3 py-2" placeholder="例如 28" />
+            </div>
+            <div>
+              <label class="text-sm text-slate-300">身高(cm)</label>
+              <input id="height" type="number" min="120" max="230" required class="mt-1 w-full rounded-lg bg-slate-900/70 border border-white/10 px-3 py-2" placeholder="例如 175" />
+            </div>
+            <div>
+              <label class="text-sm text-slate-300">体重(kg)</label>
+              <input id="weight" type="number" min="30" max="200" required class="mt-1 w-full rounded-lg bg-slate-900/70 border border-white/10 px-3 py-2" placeholder="例如 70" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-sm text-slate-300">训练经验</label>
+              <select id="experience" required class="mt-1 w-full rounded-lg bg-slate-900/70 border border-white/10 px-3 py-2">
+                <option value="新手">新手(0-6个月)</option>
+                <option value="进阶">进阶(6-24个月)</option>
+                <option value="高级">高级(2年以上)</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-sm text-slate-300">训练目标</label>
+              <select id="goal" required class="mt-1 w-full rounded-lg bg-slate-900/70 border border-white/10 px-3 py-2">
+                <option value="减脂">减脂</option>
+                <option value="增肌">增肌</option>
+                <option value="塑形">塑形</option>
+                <option value="提升体能">提升体能</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="text-xs text-slate-400">以下为可选专业维度，填写越完整计划越精准。</div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-sm text-slate-300">体脂率(%)</label>
+              <input id="bfPercent" type="number" min="5" max="40" class="mt-1 w-full rounded-lg bg-slate-900/70 border border-white/10 px-3 py-2" placeholder="例如 15（未知填0）" />
+            </div>
+            <div>
+              <label class="text-sm text-slate-300">基础代谢(BMR)</label>
+              <div class="flex gap-2">
+                <input id="bmr" type="number" min="800" max="4000" class="mt-1 flex-1 rounded-lg bg-slate-900/70 border border-white/10 px-3 py-2" placeholder="自动计算填0" />
+                <button id="calcBmrBtn" type="button" class="mt-1 rounded-lg bg-blue-500/80 hover:bg-blue-400 transition text-white text-xs px-2">
+                  自动算
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-sm text-slate-300">目标体脂率(%)</label>
+              <input id="goalBf" type="number" min="5" max="35" class="mt-1 w-full rounded-lg bg-slate-900/70 border border-white/10 px-3 py-2" placeholder="例如 12" />
+            </div>
+            <div>
+              <label class="text-sm text-slate-300">目标体重(kg)</label>
+              <input id="goalWeight" type="number" min="30" max="200" class="mt-1 w-full rounded-lg bg-slate-900/70 border border-white/10 px-3 py-2" placeholder="例如 72" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-sm text-slate-300">训练强度偏好</label>
+              <select id="intensity" class="mt-1 w-full rounded-lg bg-slate-900/70 border border-white/10 px-3 py-2">
+                <option value="低强度">低强度</option>
+                <option value="中强度" selected>中强度</option>
+                <option value="高强度">高强度</option>
+                <option value="爆发力">爆发力</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-sm text-slate-300">有氧训练占比</label>
+              <select id="aerobicRatio" class="mt-1 w-full rounded-lg bg-slate-900/70 border border-white/10 px-3 py-2">
+                <option value="0">0%</option>
+                <option value="20" selected>20%</option>
+                <option value="40">40%</option>
+                <option value="60">60%</option>
+                <option value="80">80%</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="text-sm text-slate-300">伤病/运动限制</label>
+            <div class="mt-2 grid grid-cols-2 gap-2 text-sm text-slate-200">
+              <label class="flex items-center gap-2"><input type="checkbox" name="injury" value="膝盖损伤" class="accent-orange-400"> 膝盖损伤</label>
+              <label class="flex items-center gap-2"><input type="checkbox" name="injury" value="腰突" class="accent-orange-400"> 腰突</label>
+              <label class="flex items-center gap-2"><input type="checkbox" name="injury" value="肩袖损伤" class="accent-orange-400"> 肩袖损伤</label>
+              <label class="flex items-center gap-2"><input type="checkbox" name="injury" value="腕管综合征" class="accent-orange-400"> 腕管综合征</label>
+              <label class="flex items-center gap-2"><input type="checkbox" name="injury" value="无" class="accent-orange-400"> 无</label>
+            </div>
+            <input id="injuryOther" type="text" class="mt-2 w-full rounded-lg bg-slate-900/70 border border-white/10 px-3 py-2" placeholder="其他伤病（可选）" />
+          </div>
+
+          <div>
+            <label class="text-sm text-slate-300">饮食偏好/禁忌</label>
+            <div class="mt-2 grid grid-cols-2 gap-2 text-sm text-slate-200">
+              <label class="flex items-center gap-2"><input type="checkbox" name="dietRestrict" value="素食" class="accent-orange-400"> 素食</label>
+              <label class="flex items-center gap-2"><input type="checkbox" name="dietRestrict" value="乳糖不耐" class="accent-orange-400"> 乳糖不耐</label>
+              <label class="flex items-center gap-2"><input type="checkbox" name="dietRestrict" value="坚果过敏" class="accent-orange-400"> 坚果过敏</label>
+              <label class="flex items-center gap-2"><input type="checkbox" name="dietRestrict" value="海鲜过敏" class="accent-orange-400"> 海鲜过敏</label>
+              <label class="flex items-center gap-2"><input type="checkbox" name="dietRestrict" value="无" class="accent-orange-400"> 无</label>
+            </div>
+            <input id="dietRestrictOther" type="text" class="mt-2 w-full rounded-lg bg-slate-900/70 border border-white/10 px-3 py-2" placeholder="其他饮食限制（可选）" />
+          </div>
+
+          <div>
+            <label class="text-sm text-slate-300">补剂使用情况</label>
+            <div class="mt-2 grid grid-cols-2 gap-2 text-sm text-slate-200">
+              <label class="flex items-center gap-2"><input type="checkbox" name="supplement" value="蛋白粉" class="accent-orange-400"> 蛋白粉</label>
+              <label class="flex items-center gap-2"><input type="checkbox" name="supplement" value="肌酸" class="accent-orange-400"> 肌酸</label>
+              <label class="flex items-center gap-2"><input type="checkbox" name="supplement" value="支链氨基酸" class="accent-orange-400"> 支链氨基酸</label>
+              <label class="flex items-center gap-2"><input type="checkbox" name="supplement" value="氮泵" class="accent-orange-400"> 氮泵</label>
+              <label class="flex items-center gap-2"><input type="checkbox" name="supplement" value="无" class="accent-orange-400"> 无</label>
+            </div>
+          </div>
+
+          <div>
+            <label class="text-sm text-slate-300">训练场景</label>
+            <select id="scenario" required class="mt-1 w-full rounded-lg bg-slate-900/70 border border-white/10 px-3 py-2">
+              <option value="健身房">健身房</option>
+              <option value="居家">居家</option>
+              <option value="户外">户外</option>
+              <option value="混合">混合</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="text-sm text-slate-300">可用器械</label>
+            <div class="mt-2 grid grid-cols-2 gap-2 text-sm text-slate-200">
+              <label class="flex items-center gap-2"><input type="checkbox" name="equipment" value="哑铃" class="accent-orange-400"> 哑铃</label>
+              <label class="flex items-center gap-2"><input type="checkbox" name="equipment" value="杠铃" class="accent-orange-400"> 杠铃</label>
+              <label class="flex items-center gap-2"><input type="checkbox" name="equipment" value="壶铃" class="accent-orange-400"> 壶铃</label>
+              <label class="flex items-center gap-2"><input type="checkbox" name="equipment" value="弹力带" class="accent-orange-400"> 弹力带</label>
+              <label class="flex items-center gap-2"><input type="checkbox" name="equipment" value="跑步机" class="accent-orange-400"> 跑步机</label>
+              <label class="flex items-center gap-2"><input type="checkbox" name="equipment" value="椭圆机" class="accent-orange-400"> 椭圆机</label>
+            </div>
+            <input id="equipmentOther" type="text" class="mt-2 w-full rounded-lg bg-slate-900/70 border border-white/10 px-3 py-2" placeholder="其他器械（可选）" />
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-sm text-slate-300">每周训练天数</label>
+              <select id="daysPerWeek" required class="mt-1 w-full rounded-lg bg-slate-900/70 border border-white/10 px-3 py-2">
+                <option value="1">1天</option>
+                <option value="2">2天</option>
+                <option value="3" selected>3天</option>
+                <option value="4">4天</option>
+                <option value="5">5天</option>
+                <option value="6">6天</option>
+                <option value="7">7天</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-sm text-slate-300">每次训练时长(分钟)</label>
+              <select id="sessionMinutes" required class="mt-1 w-full rounded-lg bg-slate-900/70 border border-white/10 px-3 py-2">
+                <option value="30">30</option>
+                <option value="45" selected>45</option>
+                <option value="60">60</option>
+                <option value="75">75</option>
+                <option value="90">90</option>
+              </select>
+            </div>
+          </div>
+
+          <button type="submit" class="w-full rounded-xl bg-orange-500 hover:bg-orange-400 transition text-white font-semibold py-3 shadow-lg shadow-orange-500/30">
+            生成AI健身计划
+          </button>
+          <p class="text-xs text-slate-400">免费版仅展示1天计划，支付后解锁完整7天计划+饮食方案。</p>
+        </form>
+      </section>
+
+      <!-- Result -->
+      <section class="bg-white/5 backdrop-blur rounded-2xl p-6 border border-white/10 shadow-xl">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xl font-semibold">你的训练计划</h2>
+          <span id="paidBadge" class="hidden text-xs px-2 py-1 rounded-full bg-blue-500/20 text-blue-200 border border-blue-400/30">已解锁</span>
+        </div>
+
+        <div id="loading" class="hidden mt-6">
+          <div class="flex items-center gap-3 text-slate-300">
+            <div class="h-5 w-5 rounded-full border-2 border-orange-400 border-t-transparent animate-spin"></div>
+            正在生成计划，请稍候...
+          </div>
+        </div>
+
+        <div id="errorBox" class="hidden mt-4 p-3 rounded-lg bg-red-500/10 text-red-200 border border-red-400/30"></div>
+
+        <div id="resultSection" class="mt-6 space-y-4 hidden"></div>
+
+        <div id="paySection" class="hidden mt-6 p-4 rounded-xl bg-gradient-to-r from-blue-600/20 to-orange-500/20 border border-white/10">
+          <div class="text-slate-100 font-semibold">扫码支付9.9元解锁完整7天计划+饮食方案</div>
+          <button id="payBtn" class="mt-3 w-full rounded-xl bg-blue-500 hover:bg-blue-400 transition text-white font-semibold py-2">
+            扫码支付
+          </button>
+          <p class="mt-2 text-xs text-slate-300">支付完成后将自动解锁完整内容。</p>
+        </div>
+
+        <!-- Pay Modal -->
+        <div id="payModal" class="fixed inset-0 hidden items-center justify-center bg-black/60 z-50">
+          <div class="w-[92%] max-w-sm rounded-2xl bg-slate-900 border border-white/10 p-5 shadow-2xl">
+            <div class="flex items-center justify-between">
+              <div class="text-white font-semibold">微信/支付宝扫码支付</div>
+              <button id="payModalClose" class="text-slate-300 hover:text-white">关闭</button>
+            </div>
+            <div class="mt-3">
+              <label class="text-xs text-slate-400">支付方式</label>
+              <select id="payType" class="mt-1 w-full rounded-lg bg-slate-900/70 border border-white/10 px-3 py-2 text-sm">
+                <option value="wxpay" selected>微信支付</option>
+                <option value="alipay">支付宝</option>
+                <option value="qqpay">QQ钱包</option>
+              </select>
+            </div>
+            <div class="mt-4 rounded-xl bg-white p-3">
+              <div id="payQrBox" class="w-full flex items-center justify-center min-h-[240px]"></div>
+            </div>
+            <div id="payStatusText" class="mt-3 text-xs text-slate-400">正在生成支付二维码...</div>
+            <a id="openPayLink" href="#" target="_blank" class="mt-3 inline-flex text-xs text-blue-300 hover:text-blue-200">打开支付页面</a>
+            <div id="orderInfo" class="mt-2 text-xs text-slate-500"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    // ===== 可替换配置 =====
+    const API_KEY = "REPLACE_WITH_YOUR_API_KEY"; // TODO: 可直接替换为你的DashScope API Key
+    const API_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
+    const MODEL = "qwen3.5-plus";
+    const BACKEND_BASE_URL = "http://localhost:8787"; // TODO: 替换为你的后端地址，如 https://api.example.com
+
+    // ===== 期望的JSON结构（可按你的结构替换）=====
+    const PLAN_SCHEMA = {
+      "summary": {
+        "level": "新手/进阶/高级",
+        "goal": "减脂/增肌/塑形/提升体能",
+        "days_per_week": 3,
+        "session_minutes": 45,
+        "notes": "简要概述"
+      },
+      "week_plan": [
+        {
+          "day": 1,
+          "title": "训练主题",
+          "warmup": ["热身动作 5-10分钟"],
+          "workout": [
+            { "name": "动作名称", "sets": "3", "reps": "10-12", "rest": "60秒", "notes": "要点或替代动作" }
+          ],
+          "cooldown": ["拉伸放松 5分钟"],
+          "duration_min": 45
+        }
+      ],
+      "nutrition": {
+        "calories_kcal": 2000,
+        "protein_g": 120,
+        "carbs_g": 220,
+        "fat_g": 60,
+        "guidelines": ["饮食原则1", "饮食原则2"],
+        "sample_day": {
+          "breakfast": "早餐示例",
+          "lunch": "午餐示例",
+          "dinner": "晚餐示例",
+          "snacks": "加餐示例"
+        }
+      },
+      "notes": ["注意事项1", "注意事项2"],
+      "safety": ["安全提示1", "安全提示2"]
+    };
+
+    const form = document.getElementById("planForm");
+    const apiKeyInput = document.getElementById("apiKeyInput");
+    const saveApiKeyBtn = document.getElementById("saveApiKeyBtn");
+    const calcBmrBtn = document.getElementById("calcBmrBtn");
+    const loading = document.getElementById("loading");
+    const resultSection = document.getElementById("resultSection");
+    const errorBox = document.getElementById("errorBox");
+    const paySection = document.getElementById("paySection");
+    const payBtn = document.getElementById("payBtn");
+    const payModal = document.getElementById("payModal");
+    const payModalClose = document.getElementById("payModalClose");
+    const payType = document.getElementById("payType");
+    const payQrBox = document.getElementById("payQrBox");
+    const payStatusText = document.getElementById("payStatusText");
+    const openPayLink = document.getElementById("openPayLink");
+    const orderInfo = document.getElementById("orderInfo");
+    const paidBadge = document.getElementById("paidBadge");
+
+    let lastPlan = null;
+    const LOCAL_KEY = "dashscope_api_key";
+    let currentOrderNo = "";
+    let payPollTimer = null;
+
+    const backendBase = (BACKEND_BASE_URL && !BACKEND_BASE_URL.includes("REPLACE"))
+      ? BACKEND_BASE_URL.replace(/\/$/, "")
+      : window.location.origin;
+
+    function getApiKey() {
+      const saved = localStorage.getItem(LOCAL_KEY);
+      if (saved) return saved;
+      if (API_KEY && !API_KEY.includes("REPLACE")) return API_KEY;
+      return "";
+    }
+
+    function saveApiKey() {
+      const val = apiKeyInput.value.trim();
+      if (val) {
+        localStorage.setItem(LOCAL_KEY, val);
+        apiKeyInput.value = "";
+      }
+    }
+
+    function collectMulti(name, otherId) {
+      const checked = Array.from(document.querySelectorAll(`input[name="${name}"]:checked`))
+        .map(el => el.value)
+        .filter(v => v && v !== "无");
+      const other = otherId ? document.getElementById(otherId).value.trim() : "";
+      if (other) checked.push(other);
+      return checked.length ? checked.join("、") : "无";
+    }
+
+    function getEquipment() {
+      const checked = Array.from(document.querySelectorAll('input[name="equipment"]:checked'))
+        .map(el => el.value);
+      const other = document.getElementById("equipmentOther").value.trim();
+      if (other) checked.push(other);
+      return checked.length ? checked.join("、") : "无器械/徒手";
+    }
+
+    function isPaid() {
+      return localStorage.getItem("paid") === "1";
+    }
+
+    function setPaidUI(paid) {
+      if (paid) {
+        paySection.classList.add("hidden");
+        paidBadge.classList.remove("hidden");
+      } else {
+        paySection.classList.remove("hidden");
+        paidBadge.classList.add("hidden");
+      }
+    }
+
+    function unlockPaid() {
+      localStorage.setItem("paid", "1");
+      localStorage.removeItem("pending_order_no");
+      setPaidUI(true);
+      if (lastPlan) {
+        renderPlan(lastPlan, true);
+      }
+    }
+
+    async function ensureQrLib() {
+      if (window.QRCode && typeof window.QRCode.toCanvas === "function") return;
+      const sources = [
+        "https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js",
+        "https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js"
+      ];
+      for (const src of sources) {
+        await new Promise((resolve, reject) => {
+          const s = document.createElement("script");
+          s.src = src;
+          s.async = true;
+          s.onload = resolve;
+          s.onerror = reject;
+          document.head.appendChild(s);
+        }).catch(() => {});
+        if (window.QRCode && typeof window.QRCode.toCanvas === "function") return;
+      }
+      throw new Error("二维码库加载失败");
+    }
+
+    async function renderQr(url) {
+      payQrBox.innerHTML = "";
+      try {
+        await ensureQrLib();
+        const canvas = document.createElement("canvas");
+        await window.QRCode.toCanvas(canvas, url, { width: 240, margin: 1 });
+        payQrBox.appendChild(canvas);
+      } catch (e) {
+        payQrBox.innerHTML = `<div class="text-sm text-slate-500 text-center">二维码生成失败，请点击下方“打开支付页面”完成支付。</div>`;
+        throw e;
+      }
+    }
+
+    function stopPayPoll() {
+      if (payPollTimer) {
+        clearInterval(payPollTimer);
+        payPollTimer = null;
+      }
+    }
+
+    async function checkPayStatus(orderNo) {
+      const res = await fetch(`${backendBase}/api/pay/status?order_no=${encodeURIComponent(orderNo)}`);
+      if (!res.ok) throw new Error("查询支付状态失败");
+      return res.json();
+    }
+
+    function startPayPoll(orderNo) {
+      stopPayPoll();
+      payPollTimer = setInterval(async () => {
+        try {
+          const data = await checkPayStatus(orderNo);
+          if (data?.status === "paid") {
+            payStatusText.textContent = "支付成功，已解锁内容。";
+            unlockPaid();
+            stopPayPoll();
+          }
+        } catch (e) {
+          // 静默失败，继续轮询
+        }
+      }, 3000);
+    }
+
+    async function createOrder(payTypeValue) {
+      const res = await fetch(`${backendBase}/api/pay/create`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payType: payTypeValue })
+      });
+      if (!res.ok) throw new Error("创建订单失败");
+      return res.json();
+    }
+
+    function buildPrompt(data) {
+      return `
+你是持有NSCA-CPT（美国国家体能协会私人教练认证）+ CISSN（国际运动营养学会认证）的资深健身教练，需严格按照以下要求生成专业健身计划：
+
+### 核心要求
+1. 输出格式：仅返回JSON，无任何额外文字、注释、代码块，JSON字段必须完全匹配下方模板；
+2. 专业性：符合渐进超负荷、周期化训练、宏量营养素精准配比原则，动作选择适配用户伤病/器械条件；
+3. 落地性：所有动作标注具体参数（重量%1RM、RPE评分、组间休息），饮食标注具体食材份量（克/毫升）；
+4. 安全性：优先规避用户伤病相关的危险动作，替换为等效安全动作。
+5. 完整性：必须输出7天完整周计划（week_plan为7项）；饮食必须为5餐（早、加、午、加、晚）。
+
+### JSON输出模板（必须严格匹配字段/层级）
+{
+  "basic_info": {
+    "gender": "男/女/其他",
+    "age": 28,
+    "height_cm": 175,
+    "weight_kg": 70,
+    "bf_percent": 15,
+    "bmr_kcal": 1800,
+    "tdee_kcal": 2200,
+    "goal_bf_percent": 12,
+    "goal_weight_kg": 72,
+    "calorie_adjustment": -300,
+    "injury_limit": "无/膝盖损伤/腰突"
+  },
+  "training_principle": {
+    "split_type": "推拉腿/上下肢/全身训练/分化训练",
+    "progressive_overload": "每周重量提升2.5%-5%/次数+2次/组间休息缩短10秒",
+    "rpe_baseline": 7,
+    "aerobic_ratio": 20
+  },
+  "week_plan": [
+    {
+      "day": 1,
+      "day_type": "训练日/休息日/轻量活动日",
+      "training_theme": "胸+三头肌+有氧",
+      "warmup": [
+        { "action": "动态拉伸", "duration_min": 5, "details": "手臂环绕+猫驼式+体侧屈" }
+      ],
+      "main_workout": [
+        {
+          "action_name": "杠铃卧推",
+          "muscle_group": "胸大肌+三头肌",
+          "sets": 4,
+          "reps": "8-10",
+          "weight_percent_1rm": 75,
+          "rest_seconds": 90,
+          "rpe": 8,
+          "notes": "肩胛下沉，避免锁肘；膝盖损伤者可调整脚位",
+          "alternative_action": "哑铃卧推（无杠铃时）"
+        }
+      ],
+      "aerobic": {
+        "action": "跑步机快走/椭圆机/跳绳",
+        "duration_min": 10,
+        "intensity": "中等（心率120-140次/分）",
+        "notes": "减脂期可延长至20分钟"
+      },
+      "cooldown": [
+        { "action": "静态拉伸", "duration_min": 5, "details": "胸肌拉伸+三头肌拉伸+肩胛放松" }
+      ],
+      "total_duration_min": 45
+    }
+  ],
+  "nutrition_plan": {
+    "macronutrient_ratio": {
+      "protein_g_per_kg": 2.2,
+      "carbs_g_per_kg": 4.0,
+      "fat_g_per_kg": 1.0,
+      "total_calories_kcal": 1900
+    },
+    "meal_timing": [
+      {
+        "meal_name": "早餐（6:30-7:30）",
+        "food_list": [
+          { "name": "全麦面包", "amount_g": 80 }
+        ],
+        "nutrient_content": { "protein_g": 28, "carbs_g": 65, "fat_g": 8, "calories_kcal": 450 },
+        "notes": "增肌期可加1勺蛋白粉（25g）"
+      }
+    ],
+    "supplement_suggestion": {
+      "essential": ["乳清蛋白粉（训练日）", "复合维生素（每日）"],
+      "optional": ["肌酸（5g/日，增肌期）", "鱼油（1g/日，减脂期）"],
+      "avoid": ["氮泵（睡眠差者）", "减脂药（无医嘱）"]
+    },
+    "water_intake_ml": 2500,
+    "diet_notes": ["减脂期晚餐碳水替换为山药/芋头", "乳糖不耐者用植物奶替代牛奶"]
+  },
+  "recovery_plan": {
+    "sleep_duration_h": 7.5,
+    "sleep_time": "23:00前入睡，7:00前起床",
+    "rest_day_activity": "慢走20分钟/瑜伽/泡沫轴全身放松",
+    "pain_management": "腰突者每日做麦肯基疗法5分钟，膝盖损伤者避免深蹲至90度"
+  },
+  "progress_tracking": {
+    "monitor_items": ["体重（每周1次，晨起空腹）", "体脂率（每2周1次）", "训练重量（每次记录）"],
+    "adjustment_cycle": 2,
+    "adjustment_rules": ["体重2周无变化：热量±100kcal", "训练动作能轻松完成12次：重量+2.5%"]
+  },
+  "safety_notes": [
+    "训练前必须完成动态热身，避免急性损伤",
+    "力竭前1-2次停止（RPE 8-9），避免过度训练",
+    "腰突者避免负重硬拉，替换为臀桥类动作",
+    "出现关节疼痛立即停止，24小时未缓解需就医"
+  ]
+}
+
+### 用户输入数据
+- 性别：${data.gender}
+- 年龄：${data.age} 岁
+- 身高：${data.height} cm
+- 体重：${data.weight} kg
+- 体脂率：${data.bfPercent || "未知，按标准值估算"} %
+- 基础代谢率（BMR）：${data.bmr || "未知，按Mifflin-St Jeor公式计算"} kcal
+- 训练经验：${data.experience}
+- 训练目标：${data.goal}
+- 目标体脂率：${data.goalBf || "默认：减脂12%/增肌15%"} %
+- 目标体重：${data.goalWeight || "当前体重±5%"} kg
+- 训练场景：${data.scenario}
+- 可用器械：${data.equipment}
+- 每周训练天数：${data.daysPerWeek} 天
+- 每次训练时长：${data.sessionMinutes} 分钟
+- 训练强度偏好：${data.intensity || "中强度"}
+- 有氧训练占比：${data.aerobicRatio || 20} %
+- 伤病/运动限制：${data.injury || "无"}
+- 饮食偏好/禁忌：${data.dietRestrict || "无"}
+- 补剂使用情况：${data.supplement || "无"}
+
+### 额外规则
+1. 若用户未填写体脂率/BMR：用Mifflin-St Jeor公式计算BMR（男性：10×体重+6.25×身高-5×年龄+5；女性：10×体重+6.25×身高-5×年龄-161），TDEE=BMR×活动系数（新手=1.375，进阶=1.55，高级=1.725）；
+2. 训练拆分适配天数：1-2天→全身训练，3-4天→上下肢分化，5-7天→推拉腿分化；
+3. 动作选择优先适配用户器械：无器械→徒手训练，仅哑铃→哑铃替代杠铃动作；
+4. 饮食计划规避用户禁忌：素食→用豆腐/鹰嘴豆替代肉类蛋白，乳糖不耐→替换为植物奶/无乳糖酸奶；
+5. 休息日安排：训练天数<7时，剩余天数为“休息日/轻量活动日”，避免连续训练同一肌群。
+6. 饮食计划需包含一日5餐（早、加、午、加、晚），每餐有具体食材克重、营养成分估算；
+7. 补剂建议区分“必需”和“可选”，并注明使用时机；
+8. 恢复计划需包含睡眠时长、休息日活动、疼痛管理建议；
+9. 进度追踪需包含监测指标、调整周期、调整规则；
+10. 安全提示需包含训练前热身、动作注意事项、疼痛处理建议。
+`.trim();
+    }
+
+    function safeJsonParse(text) {
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        const match = text.match(/\{[\s\S]*\}/);
+        if (match) return JSON.parse(match[0]);
+        throw e;
+      }
+    }
+
+    function renderList(items) {
+      if (!Array.isArray(items) || items.length === 0) return "<div class='text-slate-400'>无</div>";
+      return `<ul class="list-disc list-inside text-slate-200 space-y-1">${items.map(i => `<li>${i}</li>`).join("")}</ul>`;
+    }
+
+    function renderWorkout(items) {
+      if (!Array.isArray(items) || items.length === 0) return "<div class='text-slate-400'>无</div>";
+      return `
+        <div class="space-y-2">
+          ${items.map(w => `
+            <div class="rounded-lg bg-slate-900/60 border border-white/5 p-3">
+              <div class="font-semibold text-white">${w.name || ""}</div>
+              <div class="text-sm text-slate-300">
+                组数：${w.sets || "-"}；次数：${w.reps || "-"}；休息：${w.rest || "-"}
+              </div>
+              ${w.notes ? `<div class="text-xs text-slate-400 mt-1">${w.notes}</div>` : ""}
+            </div>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function renderPlan(plan, paid) {
+      if (!plan) return;
+      const warnings = [];
+      const days = Array.isArray(plan.week_plan) ? plan.week_plan : [];
+      if (days.length < 7) warnings.push(`周计划天数不足：${days.length}天（应为7天）。`);
+      const mealCount = Array.isArray(plan.nutrition_plan?.meal_timing) ? plan.nutrition_plan.meal_timing.length : 0;
+      if (mealCount > 0 && mealCount < 5) warnings.push(`饮食餐次不足：${mealCount}餐（应为5餐）。`);
+      const showDays = paid ? days : days.slice(0, 1);
+
+      const basic = plan.basic_info || {};
+      const principle = plan.training_principle || {};
+      const summaryHtml = `
+        <div class="rounded-xl bg-blue-500/10 border border-blue-400/20 p-4">
+          <div class="text-blue-200 font-semibold mb-1">基础概览</div>
+          <div class="text-sm text-slate-200">
+            性别：${basic.gender || "-"} ｜ 年龄：${basic.age || "-"} ｜ 身高：${basic.height_cm || "-"}cm ｜ 体重：${basic.weight_kg || "-"}kg
+          </div>
+          <div class="text-sm text-slate-200 mt-1">
+            体脂：${basic.bf_percent || "-"}% ｜ BMR：${basic.bmr_kcal || "-"}kcal ｜ TDEE：${basic.tdee_kcal || "-"}kcal ｜ 热量调整：${basic.calorie_adjustment ?? "-"}kcal
+          </div>
+          <div class="text-sm text-slate-200 mt-1">
+            目标体脂：${basic.goal_bf_percent || "-"}% ｜ 目标体重：${basic.goal_weight_kg || "-"}kg ｜ 伤病限制：${basic.injury_limit || "-"}
+          </div>
+        </div>
+      `;
+
+      const principleHtml = `
+        <div class="rounded-xl bg-white/5 border border-white/10 p-4">
+          <div class="text-slate-100 font-semibold mb-2">训练原则</div>
+          <div class="text-sm text-slate-200">
+            拆分：${principle.split_type || "-"} ｜ 基础RPE：${principle.rpe_baseline || "-"} ｜ 有氧占比：${principle.aerobic_ratio ?? "-"}%
+          </div>
+          <div class="text-xs text-slate-400 mt-2">${principle.progressive_overload || ""}</div>
+        </div>
+      `;
+
+      const renderActions = (items) => {
+        if (!Array.isArray(items) || items.length === 0) return "<div class='text-slate-400'>无</div>";
+        return `
+          <div class="space-y-2">
+            ${items.map(a => `
+              <div class="rounded-lg bg-slate-900/60 border border-white/5 p-3">
+                <div class="font-semibold text-white">${a.action_name || a.action || ""}</div>
+                <div class="text-sm text-slate-300">
+                  ${a.muscle_group ? `肌群：${a.muscle_group} ｜ ` : ""}组数：${a.sets ?? "-"} ｜ 次数：${a.reps ?? "-"} ｜ 休息：${a.rest_seconds ?? "-"}秒 ｜ RPE：${a.rpe ?? "-"}
+                </div>
+                ${a.weight_percent_1rm ? `<div class="text-xs text-slate-400 mt-1">%1RM：${a.weight_percent_1rm}</div>` : ""}
+                ${a.notes ? `<div class="text-xs text-slate-400 mt-1">${a.notes}</div>` : ""}
+                ${a.alternative_action ? `<div class="text-xs text-slate-400 mt-1">替代动作：${a.alternative_action}</div>` : ""}
+                ${a.details ? `<div class="text-xs text-slate-400 mt-1">${a.details}</div>` : ""}
+              </div>
+            `).join("")}
+          </div>
+        `;
+      };
+
+      const daysHtml = showDays.map(d => `
+        <div class="rounded-xl bg-white/5 border border-white/10 p-4">
+          <div class="flex items-center justify-between">
+            <div class="font-semibold text-white">Day ${d.day || ""} · ${d.training_theme || d.day_type || ""}</div>
+            <div class="text-xs text-slate-400">${d.total_duration_min || "-"} 分钟</div>
+          </div>
+          <div class="mt-2 text-sm text-slate-300">类型：${d.day_type || "-"}</div>
+          <div class="mt-3">
+            <div class="text-sm text-orange-300 font-semibold mb-1">热身</div>
+            ${renderActions(d.warmup)}
+          </div>
+          <div class="mt-3">
+            <div class="text-sm text-orange-300 font-semibold mb-1">主训练</div>
+            ${renderActions(d.main_workout)}
+          </div>
+          <div class="mt-3">
+            <div class="text-sm text-orange-300 font-semibold mb-1">有氧</div>
+            ${d.aerobic ? `
+              <div class="rounded-lg bg-slate-900/60 border border-white/5 p-3 text-sm text-slate-300">
+                动作：${d.aerobic.action || "-"} ｜ 时长：${d.aerobic.duration_min || "-"} 分钟 ｜ 强度：${d.aerobic.intensity || "-"}
+                ${d.aerobic.notes ? `<div class="text-xs text-slate-400 mt-1">${d.aerobic.notes}</div>` : ""}
+              </div>` : "<div class='text-slate-400'>无</div>"
+            }
+          </div>
+          <div class="mt-3">
+            <div class="text-sm text-orange-300 font-semibold mb-1">放松</div>
+            ${renderActions(d.cooldown)}
+          </div>
+        </div>
+      `).join("");
+
+      const nutrition = plan.nutrition_plan || {};
+      const macro = nutrition.macronutrient_ratio || {};
+      const nutritionHtml = `
+        <div class="rounded-xl bg-orange-500/10 border border-orange-400/20 p-4">
+          <div class="text-orange-200 font-semibold mb-2">饮食方案</div>
+          <div class="text-sm text-slate-200">
+            蛋白：${macro.protein_g_per_kg || "-"} g/kg ｜ 碳水：${macro.carbs_g_per_kg || "-"} g/kg ｜ 脂肪：${macro.fat_g_per_kg || "-"} g/kg ｜ 总热量：${macro.total_calories_kcal || "-"} kcal
+          </div>
+          <div class="mt-3 space-y-2">
+            ${(nutrition.meal_timing || []).map(m => `
+              <div class="rounded-lg bg-slate-900/60 border border-white/5 p-3">
+                <div class="font-semibold text-white">${m.meal_name || ""}</div>
+                <div class="text-sm text-slate-300">${(m.food_list || []).map(f => `${f.name}${f.amount_g ? f.amount_g + "g" : ""}${f.amount_ml ? f.amount_ml + "ml" : ""}${f.amount_unit ? f.amount_unit : ""}`).join("、")}</div>
+                ${m.nutrient_content ? `<div class="text-xs text-slate-400 mt-1">P${m.nutrient_content.protein_g || "-"} C${m.nutrient_content.carbs_g || "-"} F${m.nutrient_content.fat_g || "-"} kcal${m.nutrient_content.calories_kcal || "-"}</div>` : ""}
+                ${m.notes ? `<div class="text-xs text-slate-400 mt-1">${m.notes}</div>` : ""}
+              </div>
+            `).join("")}
+          </div>
+          <div class="mt-3 text-sm text-slate-200">饮水：${nutrition.water_intake_ml || "-"} ml</div>
+          <div class="mt-2">${renderList(nutrition.diet_notes)}</div>
+          <div class="mt-3 text-sm text-slate-200">
+            必选补剂：${(nutrition.supplement_suggestion?.essential || []).join("、") || "-"}
+          </div>
+          <div class="text-sm text-slate-200">
+            可选补剂：${(nutrition.supplement_suggestion?.optional || []).join("、") || "-"}
+          </div>
+          <div class="text-sm text-slate-200">
+            避免补剂：${(nutrition.supplement_suggestion?.avoid || []).join("、") || "-"}
+          </div>
+        </div>
+      `;
+
+      const recovery = plan.recovery_plan || {};
+      const recoveryHtml = `
+        <div class="rounded-xl bg-white/5 border border-white/10 p-4">
+          <div class="text-slate-100 font-semibold mb-2">恢复计划</div>
+          <div class="text-sm text-slate-200">睡眠：${recovery.sleep_duration_h || "-"} 小时 ｜ ${recovery.sleep_time || "-"}</div>
+          <div class="text-sm text-slate-200 mt-1">休息日活动：${recovery.rest_day_activity || "-"}</div>
+          <div class="text-sm text-slate-200 mt-1">疼痛管理：${recovery.pain_management || "-"}</div>
+        </div>
+      `;
+
+      const progress = plan.progress_tracking || {};
+      const progressHtml = `
+        <div class="rounded-xl bg-white/5 border border-white/10 p-4">
+          <div class="text-slate-100 font-semibold mb-2">进度追踪</div>
+          ${renderList(progress.monitor_items)}
+          <div class="text-sm text-slate-200 mt-2">调整周期：${progress.adjustment_cycle || "-"} 周</div>
+          <div class="mt-2">${renderList(progress.adjustment_rules)}</div>
+        </div>
+      `;
+
+      const safetyHtml = `
+        <div class="rounded-xl bg-white/5 border border-white/10 p-4">
+          <div class="text-slate-100 font-semibold mb-2">安全提示</div>
+          ${renderList(plan.safety_notes)}
+        </div>
+      `;
+
+      const warningHtml = warnings.length
+        ? `<div class="rounded-xl bg-red-500/10 border border-red-400/30 p-4 text-red-200 text-sm">
+            ${warnings.map(w => `<div>⚠️ ${w}</div>`).join("")}
+           </div>`
+        : "";
+
+      resultSection.innerHTML = `
+        ${warningHtml}
+        ${summaryHtml}
+        ${principleHtml}
+        ${daysHtml}
+        ${paid ? nutritionHtml : ""}
+        ${paid ? recoveryHtml : ""}
+        ${paid ? progressHtml : ""}
+        ${paid ? safetyHtml : ""}
+      `;
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      errorBox.classList.add("hidden");
+      resultSection.classList.add("hidden");
+      loading.classList.remove("hidden");
+
+      const effectiveKey = getApiKey();
+      if (!effectiveKey) {
+        loading.classList.add("hidden");
+        errorBox.textContent = "请先填写并保存你的 API Key。";
+        errorBox.classList.remove("hidden");
+        return;
+      }
+
+      const data = {
+        gender: document.getElementById("gender").value,
+        age: document.getElementById("age").value,
+        height: document.getElementById("height").value,
+        weight: document.getElementById("weight").value,
+        bfPercent: Number(document.getElementById("bfPercent").value) || "",
+        bmr: Number(document.getElementById("bmr").value) || "",
+        goalBf: Number(document.getElementById("goalBf").value) || "",
+        goalWeight: Number(document.getElementById("goalWeight").value) || "",
+        experience: document.getElementById("experience").value,
+        goal: document.getElementById("goal").value,
+        intensity: document.getElementById("intensity").value,
+        aerobicRatio: document.getElementById("aerobicRatio").value,
+        scenario: document.getElementById("scenario").value,
+        equipment: getEquipment(),
+        injury: collectMulti("injury", "injuryOther"),
+        dietRestrict: collectMulti("dietRestrict", "dietRestrictOther"),
+        supplement: collectMulti("supplement"),
+        daysPerWeek: document.getElementById("daysPerWeek").value,
+        sessionMinutes: document.getElementById("sessionMinutes").value
+      };
+
+      const systemPrompt = "你是专业健身教练与营养师。你必须严格输出JSON，且只输出JSON。";
+      const userPrompt = buildPrompt(data);
+
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${effectiveKey}`
+          },
+          body: JSON.stringify({
+            model: MODEL,
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt }
+            ],
+            temperature: 0.1,
+            response_format: { type: "json_object" }
+          })
+        });
+
+        if (!res.ok) throw new Error(`API错误：${res.status}`);
+        const dataRes = await res.json();
+        const content = dataRes?.choices?.[0]?.message?.content || "";
+        lastPlan = safeJsonParse(content);
+
+        const paid = isPaid();
+        setPaidUI(paid);
+        renderPlan(lastPlan, paid);
+
+        loading.classList.add("hidden");
+        resultSection.classList.remove("hidden");
+      } catch (err) {
+        loading.classList.add("hidden");
+        errorBox.textContent = "生成失败，请稍后重试或检查API配置。";
+        errorBox.classList.remove("hidden");
+        console.error(err);
+      }
+    });
+
+    payBtn.addEventListener("click", async () => {
+      payModal.classList.remove("hidden");
+      payModal.classList.add("flex");
+      payStatusText.textContent = "正在生成支付二维码...";
+      openPayLink.classList.add("pointer-events-none");
+      openPayLink.textContent = "打开支付页面";
+      orderInfo.textContent = "";
+      payQrBox.innerHTML = "";
+
+      if (backendBase === "null" || !backendBase) {
+        payStatusText.textContent = "请先部署后端并配置 BACKEND_BASE_URL。";
+        return;
+      }
+
+      try {
+        const order = await createOrder(payType.value);
+        currentOrderNo = order.order_no;
+        localStorage.setItem("pending_order_no", order.order_no);
+        openPayLink.href = order.pay_url;
+        openPayLink.classList.remove("pointer-events-none");
+        orderInfo.textContent = `订单号：${order.order_no}`;
+        payStatusText.textContent = "正在生成二维码...";
+
+        try {
+          await renderQr(order.pay_url);
+          payStatusText.textContent = "请扫码完成支付，系统将自动解锁。";
+        } catch (e) {
+          payStatusText.textContent = "二维码生成失败，可点击“打开支付页面”继续支付。";
+        }
+
+        startPayPoll(order.order_no);
+      } catch (e) {
+        payStatusText.textContent = "创建订单失败，请稍后重试。";
+      }
+    });
+
+    payModal.addEventListener("click", (e) => {
+      if (e.target === payModal) {
+        payModal.classList.add("hidden");
+        payModal.classList.remove("flex");
+        stopPayPoll();
+      }
+    });
+    payModalClose.addEventListener("click", () => {
+      payModal.classList.add("hidden");
+      payModal.classList.remove("flex");
+      stopPayPoll();
+    });
+
+    saveApiKeyBtn.addEventListener("click", saveApiKey);
+    apiKeyInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        saveApiKey();
+      }
+    });
+
+    calcBmrBtn.addEventListener("click", () => {
+      const gender = document.getElementById("gender").value;
+      const age = Number(document.getElementById("age").value) || 25;
+      const height = Number(document.getElementById("height").value) || 170;
+      const weight = Number(document.getElementById("weight").value) || 65;
+      const bmr = gender === "男"
+        ? 10 * weight + 6.25 * height - 5 * age + 5
+        : 10 * weight + 6.25 * height - 5 * age - 161;
+      document.getElementById("bmr").value = Math.round(bmr);
+    });
+
+    // 若支付完成页回跳带订单号，则自动校验
+    const params = new URLSearchParams(window.location.search);
+    const returnOrderNo = params.get("order_no");
+    if (returnOrderNo) {
+      checkPayStatus(returnOrderNo)
+        .then((data) => {
+          if (data?.status === "paid") unlockPaid();
+        })
+        .catch(() => {});
+    }
+
+    // 若本地有待支付订单，尝试校验
+    const pendingOrderNo = localStorage.getItem("pending_order_no");
+    if (pendingOrderNo && !returnOrderNo) {
+      checkPayStatus(pendingOrderNo)
+        .then((data) => {
+          if (data?.status === "paid") unlockPaid();
+        })
+        .catch(() => {});
+    }
+
+    // 初始化支付状态
+    setPaidUI(isPaid());
+  </script>
+</body>
+</html>
